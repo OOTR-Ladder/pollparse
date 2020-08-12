@@ -13,6 +13,7 @@ function main(): int {
 
     echo "day,hour,count\n";
     foreach (get_adjusted_hours('poll.csv') as $dow => $hours) {
+        ksort($hours);
         foreach($hours as $hour => $count) {
             echo "\"", $daystr[$dow], "\",$hour,$count\n";
         }
@@ -45,22 +46,31 @@ function get_adjusted_hours(string $path): array {
             );
 
             foreach ($hours as $v) {
-                $hour = (int) substr($v, 0, -1);
+                $hour = ((int) substr(trim($v), 0, -1)) + $offset;
                 $iOff = 0;
                 if ($hour < 0) {
                     $iOff = -1;
+                    $hour = 24 + $hour;
+                } else if ($hour > 24) {
+                    $iOff = 1;
                 }
+                $hour = $hour % 24;
 
                 if (($i + $iOff) < FIRST_DOW_COL) {
-                    $iOff = 7;
+                    $iOff = 6;
+                } else {
+                    if (($i + $iOff) > (FIRST_DOW_COL+7)) {
+                        $iOff = -1;
+                    }
                 }
+
                 $index = $i - FIRST_DOW_COL + $iOff;
 
-                if (!array_key_exists($hour+$offset, $perDOW[$index])) {
-                    $perDOW[$index][$hour+$offset] = 0;
+                if (!array_key_exists($hour, $perDOW[$index])) {
+                    $perDOW[$index][$hour] = 0;
                 }
 
-                $perDOW[$index][$hour+$offset]++;
+                $perDOW[$index][$hour]++;
             }
         }
     }

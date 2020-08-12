@@ -5,17 +5,18 @@ error_reporting(-1);
 
 const FIRST_DOW_COL = 5;
 const TZ_COL = 4;
+const LEAGUE_COL = 3;
 
 exit(main());
 
 function main(): int {
     $daystr = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-    echo "day,hour,count\n";
+    echo "day-hour,std,shu\n";
     foreach (get_adjusted_hours('poll.csv') as $dow => $hours) {
         ksort($hours);
         foreach($hours as $hour => $count) {
-            echo "\"", $daystr[$dow], "\",$hour,$count\n";
+            printf('"%s-%d",%d,%d'."\n", $daystr[$dow], $hour, $count['std'], $count['shu']);
         }
     }
 
@@ -31,7 +32,7 @@ function get_adjusted_hours(string $path): array {
     while (($line = fgetcsv($h, 4096)) !== false) {
         $offset = parse_offset($line[TZ_COL]);
         if ($offset === null) {
-            fwrite(STDERR, 'cannot parse TZ ' . $line[TZ_COL]);
+            fwrite(STDERR, 'cannot parse TZ ' . $line[TZ_COL] . "\n");
             continue;
         }
 
@@ -67,10 +68,24 @@ function get_adjusted_hours(string $path): array {
                 $index = $i - FIRST_DOW_COL + $iOff;
 
                 if (!array_key_exists($hour, $perDOW[$index])) {
-                    $perDOW[$index][$hour] = 0;
+                    $perDOW[$index][$hour] = ['std' => 0, 'shu' => 0];
                 }
 
-                $perDOW[$index][$hour]++;
+                switch ($line[LEAGUE_COL]) {
+                case 'Standard':
+                    $perDOW[$index][$hour]['std']++;
+                    break;
+                case 'Shuffled Settings':
+                    $perDOW[$index][$hour]['shu']++;
+                    break;
+                case 'Both equally':
+                    $perDOW[$index][$hour]['std']++;
+                    $perDOW[$index][$hour]['shu']++;
+                    break;
+                default:
+                    fwrite(STDERR, 'cannot parse league ' . $line[LEAGUE_COL] . "\n");
+                    break;
+                }
             }
         }
     }

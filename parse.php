@@ -95,11 +95,15 @@ function get_adjusted_hours(string $path): array {
 }
 
 function parse_offset(string $str): ?int {
-    if ($str === 'UTC' || $str === 'GMT') {
+    switch ($str) {
+    case 'UTC':
+    case 'GMT':
         return 0;
-    }
+    case 'CDT':
+        return -5;
+    };
 
-    if (!preg_match('`([-+])(\d{1,2}):`', $str, $matches)) {
+    if (!preg_match('`([-+])(\d{1,2})`', $str, $matches)) {
         return null;
     }
 
@@ -108,5 +112,5 @@ function parse_offset(string $str): ?int {
         $sign = -1;
     }
 
-    return $sign * $matches[2];
+    return $sign * intval($matches[2]);
 }

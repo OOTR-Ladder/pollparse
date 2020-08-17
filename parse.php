@@ -16,7 +16,7 @@ function main(): int {
     foreach (get_adjusted_hours('poll.csv') as $dow => $hours) {
         ksort($hours);
         foreach($hours as $hour => $count) {
-            printf('"%s-%d",%d,%d'."\n", $daystr[$dow], $hour, $count['std'], $count['shu']);
+            printf('"%s-%02d",%d,%d'."\n", $daystr[$dow], $hour, $count['std'], $count['shu']);
         }
     }
 
@@ -47,40 +47,25 @@ function get_adjusted_hours(string $path): array {
             );
 
             foreach ($hours as $v) {
+                $dow = $i - FIRST_DOW_COL;
                 $hour = ((int) substr(trim($v), 0, -1)) + $offset;
-                $iOff = 0;
-                if ($hour < 0) {
-                    $iOff = -1;
-                    $hour = 24 + $hour;
-                } else if ($hour > 24) {
-                    $iOff = 1;
-                }
-                $hour = $hour % 24;
 
-                if (($i + $iOff) < FIRST_DOW_COL) {
-                    $iOff = 6;
-                } else {
-                    if (($i + $iOff) > (FIRST_DOW_COL+7)) {
-                        $iOff = -1;
-                    }
-                }
+                [$dow, $hour] = slide_dow($dow, $hour);
 
-                $index = $i - FIRST_DOW_COL + $iOff;
-
-                if (!array_key_exists($hour, $perDOW[$index])) {
-                    $perDOW[$index][$hour] = ['std' => 0, 'shu' => 0];
+                if (!array_key_exists($hour, $perDOW[$dow])) {
+                    $perDOW[$dow][$hour] = ['std' => 0, 'shu' => 0];
                 }
 
                 switch ($line[LEAGUE_COL]) {
                 case 'Standard':
-                    $perDOW[$index][$hour]['std']++;
+                    $perDOW[$dow][$hour]['std']++;
                     break;
                 case 'Shuffled Settings':
-                    $perDOW[$index][$hour]['shu']++;
+                    $perDOW[$dow][$hour]['shu']++;
                     break;
                 case 'Both equally':
-                    $perDOW[$index][$hour]['std']++;
-                    $perDOW[$index][$hour]['shu']++;
+                    $perDOW[$dow][$hour]['std']++;
+                    $perDOW[$dow][$hour]['shu']++;
                     break;
                 default:
                     fwrite(STDERR, 'cannot parse league ' . $line[LEAGUE_COL] . "\n");
@@ -107,10 +92,31 @@ function parse_offset(string $str): ?int {
         return null;
     }
 
-    $sign = 1;
+    $sign = -1;
     if ($matches[1] === '-') {
-        $sign = -1;
+        $sign = 1;
     }
 
     return $sign * intval($matches[2]);
+}
+
+function slide_dow(int $dow , int $hour): array {
+    $a = $dow;
+    $b = $hour;
+
+    if ($hour < 0) {
+        $dow--;
+        $hour = 24 + $hour;
+    } else if ($hour > 24) {
+        $dow++;
+        $hour = $hour % 24;
+    }
+
+    if ($dow < 0) {
+        $dow = 7 + $dow;
+    } else if ($dow > 6) {
+        $dow = 7 - $dow;
+    }
+
+    return [$dow, $hour];
 }

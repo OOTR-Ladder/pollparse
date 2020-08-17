@@ -7,13 +7,18 @@ const FIRST_DOW_COL = 5;
 const TZ_COL = 4;
 const LEAGUE_COL = 3;
 
-exit(main());
+exit(main($argv));
 
-function main(): int {
+function main(array $argv): int {
+    if (count($argv) !== 2) {
+        fwrite(STDERR, "Usage: {$argv[0]} CSV\n");
+        return 1;
+    }
+
     $daystr = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
     echo "day-hour,std,shu\n";
-    foreach (get_adjusted_hours('poll.csv') as $dow => $hours) {
+    foreach (get_adjusted_hours($argv[1]) as $dow => $hours) {
         ksort($hours);
         foreach($hours as $hour => $count) {
             printf('"%s-%02d",%d,%d'."\n", $daystr[$dow], $hour, $count['std'], $count['shu']);
